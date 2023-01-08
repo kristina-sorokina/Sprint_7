@@ -1,13 +1,13 @@
 package api;
 
-public class Response {
+public class ApiResponse {
     private int id;
 
-    public Response(int id) {
+    public ApiResponse(int id) {
         this.id = id;
     }
 
-    public Response() {
+    public ApiResponse() {
     }
 
     public int getId() {
