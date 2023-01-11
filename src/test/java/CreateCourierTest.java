@@ -1,7 +1,9 @@
 import api.ApiResponse;
 import api.Courier;
 
+import api.client.CourierClient;
 import io.qameta.allure.junit4.DisplayName;
+import io.restassured.response.ValidatableResponse;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,32 +13,27 @@ import static org.hamcrest.CoreMatchers.equalTo;
 
 public class CreateCourierTest {
     private Courier courier;
+    private CourierClient courierClient;
 
     @Before
     public void setUp() {
         baseURI = "http://qa-scooter.praktikum-services.ru/";
-        courier = new Courier("testLogin731", "testPassword094", "testName528");
+        courier = new Courier("testLogin739", "testPassword092", "testName527");
+        courierClient = new CourierClient();
     }
 
     @Test
     @DisplayName("Check Status code when courier created successfully")
     public void shouldReturn201WhenSuccess() {
-        given()
-                .header("Content-type", "application/json")
-                .and().body(courier)
-                .when().post("api/v1/courier")
-                .then()
-                .statusCode(201);
+        ValidatableResponse response = courierClient.createCourier(courier);
+        response.statusCode(201);
     }
 
     @Test
     @DisplayName("Check Response body when courier created successfully")
     public void shouldReturnCorrectResponseBodyWhenSuccess() {
-        given()
-                .header("Content-type", "application/json")
-                .and().body(courier)
-                .when().post("api/v1/courier")
-                .then().assertThat().body("ok", equalTo(true));
+        ValidatableResponse response = courierClient.createCourier(courier);
+        response.assertThat().body("ok", equalTo(true));
     }
 
     @Test
@@ -46,13 +43,9 @@ public class CreateCourierTest {
                 "    \"login\": \"testLogin45222\",\n" +
                 "    \"firstName\": \"testName7530\"\n" +
                 "}";
-
-        given()
-                .header("Content-type", "application/json")
-                .and().body(noPasswordCourier)
-                .when().post("api/v1/courier")
-                .then().assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"))
-                .and().statusCode(400);
+        ValidatableResponse response = courierClient.createCourier(noPasswordCourier);
+        response.statusCode(400);
+        response.body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
 
     @Test
@@ -62,30 +55,19 @@ public class CreateCourierTest {
                 "    \"password\": \"testPassword0495\",\n" +
                 "    \"firstName\": \"testName7530\"\n" +
                 "}";
-
-        given()
-                .header("Content-type", "application/json")
-                .and().body(noLoginCourier)
-                .when().post("api/v1/courier")
-                .then().assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"))
-                .and().statusCode(400);
+        ValidatableResponse response = courierClient.createCourier(noLoginCourier);
+        response.statusCode(400);
+        response.body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
 
     @Test
     @DisplayName("Check response status code and message when same courier created")
     public void shouldReturn409ConflictWhenSameCourierCreated() {
-        given()
-                .header("Content-type", "application/json")
-                .and().body(courier)
-                .post("api/v1/courier");
+        courierClient.createCourier(courier);
 
-        given()
-                .header("Content-type", "application/json")
-                .and().body(courier)
-                .when().post("api/v1/courier")
-                .then().assertThat().body("message", equalTo("Этот логин уже используется"))
-                .and().statusCode(400);
-
+        ValidatableResponse response = courierClient.createCourier(courier);
+        response.statusCode(409);
+        response.body("message", equalTo("Этот логин уже используется"));
     }
 
     @After
@@ -96,17 +78,8 @@ public class CreateCourierTest {
                         "    \"password\": \"%s\"\n" +
                         "}", courier.getLogin(), courier.getPassword()
         );
-
-        ApiResponse response = given()
-                .header("Content-type", "application/json")
-                .body(courierIdJson)
-                .post("api/v1/courier/login")
-                .body().as(ApiResponse.class);
-
-
-        given()
-                .header("Content-type", "application/json")
-                .and().body(courierIdJson)
-                .delete(String.format("api/v1/courier/%s", response.getId()));
+        ValidatableResponse response = courierClient.loginCourier(courierIdJson);
+        ApiResponse apiResponse = response.extract().body().as(ApiResponse.class);
+        courierClient.deleteCourier(courierIdJson, apiResponse.getId());
     }
 }
